@@ -1,5 +1,6 @@
 import tcolor from "tinycolor2";
 import dPathParse from "d-path-parser";
+import Snap from './snap.svg.js';
 
 import * as PIXI from "pixi.js";
 
@@ -101,7 +102,7 @@ export class SVGNode extends PIXI.Graphics {
 			const child = children[i];
 
 			const nodeStyle = parseSvgStyle(child);
-			const matrix = parseSvgTransform(child);
+			this._currentTransform = parseSvgTransform(child);
 			const nodeType = child.nodeName.toLowerCase();
 
 			/**
@@ -115,9 +116,9 @@ export class SVGNode extends PIXI.Graphics {
 			}
 
 			//compile full style inherited from all parents
-			const fullStyle = Object.assign({}, parentStyle || {}, nodeStyle);
+			this._currentStyle = Object.assign({}, parentStyle || {}, nodeStyle);
 
-			shape.fillShapes(fullStyle, matrix);
+			shape.fillOn();
 
 			switch (nodeType) {
 				case "path": {
@@ -156,7 +157,7 @@ export class SVGNode extends PIXI.Graphics {
 				}
 			}
 
-			shape.parseChildren(child.children, fullStyle, matrix);
+			shape.parseChildren(child.children, this._currentStyle, this._currentTransform);
 			if (this.options.unpackTree) {
 				shape.name = child.getAttribute("id") || "child_" + i;
 				this.addChild(shape);
@@ -285,7 +286,10 @@ export class SVGNode extends PIXI.Graphics {
 	 * @param {*} style
 	 * @param {PIXI.Matrix} matrix
 	 */
-	fillShapes(style, matrix) {
+	fillOn() {
+        const style = this._currentStyle;
+        const matrix = this._currentTransform;
+
 		const { fill, opacity, stroke, strokeWidth, strokeOpacity, fillOpacity } = style;
 
 		const isStrokable = stroke !== undefined && stroke !== "none" && stroke !== "transparent";
@@ -312,7 +316,7 @@ export class SVGNode extends PIXI.Graphics {
 			} else {
 				this.beginFill(this.hexToUint(fill), fillOpacityValue);
 			}
-		} else {
+		}else{
 			this.beginFill(this.options.fillColor, 1);
 		}
 
@@ -320,13 +324,20 @@ export class SVGNode extends PIXI.Graphics {
 		this.setMatrix(matrix);
 	}
 
-	/**
-	 * Render a <path> d element
-	 * @method SVG#svgPath
-	 * @param {SVGPathElement} node
-	 */
-	svgPath(node) {
-		const d = node.getAttribute("d");
+	fillOff() {
+        this.endFill();
+	}
+
+    holeOn() {
+        this.beginHole();
+		//this.setMatrix(this._currentTransform);
+    }
+
+    holeOff(){
+        this.endHole();
+    }
+
+    drawString(d) {
 		let x = 0,
 			y = 0;
 		let iX = 0,
@@ -555,4 +566,92 @@ export class SVGNode extends PIXI.Graphics {
 			prevCommand = command;
 		}
 	}
+
+	/**
+	 * Render a <path> d element
+	 * @method SVG#svgPath
+	 * @param {SVGPathElement} node
+	 */
+	svgPath(node) {
+        console.log("separeting");
+        const absPath = Snap.path.toAbsolute(node.outerHTML);
+        const brokenPaths = [];
+        for (const pathSeg of absPath.toString().split('M').map(el => 'M'+el)){
+            if (pathSeg != "M"){
+                const newPath = node.cloneNode(true);
+                const cubePath = Snap.path.toCubic(pathSeg).toString();
+                newPath.setAttribute('d', cubePath);
+                brokenPaths.push(newPath);
+            }
+        }
+
+        console.log("building path hierachy");
+        const children = [];
+        children[null] = [];
+        for (var i = 0; i < brokenPaths.length; i++){
+            children[i] = [];
+        }
+        for (var i = 0; i < brokenPaths.length; i++){
+            const pathString = brokenPaths[i].getAttribute('d');
+            const firstPoint = Snap.parsePathString(pathString)[0].slice(1,3);
+            var father = null;
+            var flag = true;
+            while (flag){
+                flag = false;
+                var add = true;
+                for (var sibling of children[father]){
+                    const siblingPathString = brokenPaths[sibling].getAttribute('d');
+                    const siblingFirstPoint = Snap.parsePathString(siblingPathString)[0].slice(1,3);
+                    if (Snap.path.isPointInside(siblingPathString, firstPoint[0], firstPoint[1])){
+                        father = sibling;
+                        flag = true;
+                        add = false;
+                        break;
+                    }else if (Snap.path.isPointInside(pathString, siblingFirstPoint[0], siblingFirstPoint[1])){
+                        const indx = children[father].indexOf(sibling);
+                        children[father][indx] = i;
+                        children[i].push(sibling);
+                        add = false;
+                        break; 
+                    }
+                }
+                if (add){
+                    children[father].push(i);
+                }
+            }
+        }
+
+        var flag = true;
+        var cnt = 0;
+        while (flag){
+            flag = false;
+            for (var i of children[null]){
+                for (var j of children[i]){
+                    if (children[j].length > 0){
+                        flag = true;
+                        for (var k of children[j]){
+                            children[null].push(k);
+                        }
+                    }
+                    children[j] = [];
+                }
+                cnt++;
+            }
+        }
+        for (var i of children[null]){
+            const pathString = brokenPaths[i].getAttribute('d');
+            console.log("father "+pathString);
+            this.fillOn();
+            this.drawString(pathString);
+            this.fillOff();
+            for (var j of children[i]){
+                const pathString = brokenPaths[j].getAttribute('d');
+                console.log("child "+pathString);
+                this.holeOn();
+                this.drawString(pathString);
+                this.holeOff();
+            }
+
+        }
+    }
 }
