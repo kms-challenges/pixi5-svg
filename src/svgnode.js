@@ -573,7 +573,6 @@ export class SVGNode extends PIXI.Graphics {
 	 * @param {SVGPathElement} node
 	 */
 	svgPath(node) {
-        console.log("separeting");
         const absPath = Snap.path.toAbsolute(node.outerHTML);
         const brokenPaths = [];
         for (const pathSeg of absPath.toString().split('M').map(el => 'M'+el)){
@@ -585,7 +584,6 @@ export class SVGNode extends PIXI.Graphics {
             }
         }
 
-        console.log("building path hierachy");
         const children = [];
         children[null] = [];
         for (var i = 0; i < brokenPaths.length; i++){
@@ -640,13 +638,11 @@ export class SVGNode extends PIXI.Graphics {
         }
         for (var i of children[null]){
             const pathString = brokenPaths[i].getAttribute('d');
-            console.log("father "+pathString);
             this.fillOn();
             this.drawString(pathString);
             this.fillOff();
             for (var j of children[i]){
                 const pathString = brokenPaths[j].getAttribute('d');
-                console.log("child "+pathString);
                 this.holeOn();
                 this.drawString(pathString);
                 this.holeOff();
