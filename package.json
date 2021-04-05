@@ -1,6 +1,6 @@
 {
   "name": "pixi5-svg",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/eXponenta/pixi5-svg.git"
@@ -20,7 +20,7 @@
   "dependencies": {
     "d-path-parser": "^1.0.0",
     "pixi.js": "^5.1.1",
-    "snapsvg": "github:damavrom/Snap.svg",
+    "snapsvg": "git://github.com/damavrom/Snap.svg",
     "tinycolor2": "^1.4.1"
   }
 }
