@@ -601,16 +601,18 @@ export class SVGNode extends PIXI.Graphics {
                     const siblingPathString = brokenPaths[sibling].getAttribute('d');
                     const siblingFirstPoint = Snap.parsePathString(siblingPathString)[0].slice(1,3);
                     if (Snap.path.isPointInside(siblingPathString, firstPoint[0], firstPoint[1])){
-                        father = sibling;
-                        flag = true;
-                        add = false;
-                        break;
+                        if (Snap.path.intersection(pathString, siblingPathString).length == 0){
+                            father = sibling;
+                            flag = true;
+                            add = false;
+                            break;
+                        }
                     }else if (Snap.path.isPointInside(pathString, siblingFirstPoint[0], siblingFirstPoint[1])){
-                        const indx = children[father].indexOf(sibling);
-                        children[father][indx] = i;
-                        children[i].push(sibling);
-                        add = false;
-                        break; 
+                        if (Snap.path.intersection(pathString, siblingPathString).length == 0){
+                            const indx = children[father].indexOf(sibling);
+                            children[father] = children[father].slice(0, indx).concat(children[father].slice(indx+1));
+                            children[i].push(sibling);
+                        }
                     }
                 }
                 if (add){
