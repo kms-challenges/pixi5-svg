@@ -19,8 +19,6 @@
   "license": "MIT",
   "dependencies": {
     "d-path-parser": "^1.0.0",
-    "pixi.js": "^5.3.6",
-    "snapsvg": "git://github.com/damavrom/Snap.svg",
     "tinycolor2": "^1.4.1"
   }
 }
