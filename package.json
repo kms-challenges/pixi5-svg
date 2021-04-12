@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "d-path-parser": "^1.0.0",
+    "eve": "~0.5.1",
     "tinycolor2": "^1.4.1"
   }
 }
