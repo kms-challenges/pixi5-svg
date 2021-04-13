@@ -10,6 +10,7 @@ import { parseSvgStyle, parseSvgTransform, arcToBezier } from "./utils";
 
 const EPS = 0.0001;
 const tmpPoint = new PIXI.Point();
+PIXI.GRAPHICS_CURVES.adaptive = false;
 
 /**
  * @typedef {Object} DefaultOptions
